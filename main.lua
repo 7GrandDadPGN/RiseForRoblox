@@ -651,11 +651,11 @@ pcall(function()
                             local suc, res = pcall(function() return Enum.KeyCode[args[2]] end)
                             print(suc, res)
                             if suc or args[2] == "None" then
-                                local oldiden = getidentity()
-                                setidentity(8)
+                                local oldiden = getthreadidentity()
+                                setthreadidentity(8)
                                 module["Api"]["SetKeybind"](suc and res.Name or "")
                                 VapeGui["CreateNotification"]("", "Set "..args[1].."'s bind to "..args[2]:upper()..".", 5)
-                                setidentity(oldiden)
+                                setthreadidentity(oldiden)
                             end
                         end
                     end
@@ -664,14 +664,14 @@ pcall(function()
                     local args = message:split(" ")
                     table.remove(args, 1)
                     if #args >= 1 then
-                        local oldiden = getidentity()
-                        setidentity(8)
+                        local oldiden = getthreadidentity()
+                        setthreadidentity(8)
                         local clientname = ""
                         for i,v in pairs(args) do clientname = clientname..v.." " end
                         risetextcustom.Text = clientname
                         risetextcustom.TextLabel.Text = clientname
                         riseoptions.CustomText = clientname
-                        setidentity(oldiden)
+                        setthreadidentity(oldiden)
                     end
                     return true
                 end
