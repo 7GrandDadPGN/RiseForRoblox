@@ -49,7 +49,7 @@ local function getcustomassetfunc(path)
             textlabel:Remove()
         end)
         local req = requestfunc({
-            Url = "https://raw.githubusercontent.com/7GrandDadPGN/RiseForRoblox/main/"..path:gsub("rise/assets", "assets"),
+            Url = "https://raw.githubusercontent.com/GGsploit/RiseForRoblox/main/"..path:gsub("rise/assets", "assets"),
             Method = "GET"
         })
         writefile(path, req.Body)
