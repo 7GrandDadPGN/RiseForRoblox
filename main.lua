@@ -3,6 +3,7 @@ local riseoptions = {
     Theme = "Rise Blend",
     RenderToggle = true,
     ShowRenderModules = true,
+    NameTags = false,
     R = 1,
     G = 1,
     B = 1
@@ -42,7 +43,8 @@ local function SaveSettings()
     writefile("rise/settings.json", game:GetService("HttpService"):JSONEncode(riseoptions))
 end
 
-local lplr = game:GetService("Players").LocalPlayer
+local players = game:GetService("Players")
+local lplr = players.LocalPlayer
 local getasset = getsynasset or getcustomasset or function(location) return "rbxasset://"..location end
 local queueteleport = syn and syn.queue_on_teleport or queue_on_teleport or fluxus and fluxus.queue_on_teleport or function() end
 local requestfunc = syn and syn.request or http and http.request or http_request or fluxus and fluxus.request or request or function(tab)
@@ -78,11 +80,151 @@ local function GetURL(scripturl, rise)
         return res
     end
 end
-
 local VapeGui
+local universalcolor = Color3.new(1, 1, 1)
+local targetinfohealthbar
+local guilib = loadstring(GetURL("guilib.lua", true))()
+guilib.ScreenGui.MainFrame.Visible = false
 spawn(function()
     repeat task.wait() until shared.GuiLibrary
     VapeGui = shared.GuiLibrary
+    local notificationwindow = Instance.new("Frame")
+    notificationwindow.Size = UDim2.new(1, 0, 1, 0)
+    notificationwindow.BackgroundTransparency = 1
+    notificationwindow.Parent = guilib.ScreenGui
+    spawn(function()
+        local num = 0
+        repeat
+            task.wait(0.01)
+            local colornew = risethemes[riseoptions.Theme].TextGUIColor1
+            if num < 1 then
+                colornew = risethemes[riseoptions.Theme].TextGUIColor1:lerp(risethemes[riseoptions.Theme].TextGUIColor2, num)
+            elseif num < 2 then 
+                colornew = risethemes[riseoptions.Theme].TextGUIColor2:lerp(risethemes[riseoptions.Theme].TextGUIColor1, num - 1)
+            else
+                num = 0
+            end
+            if targetinfohealthbar then
+                targetinfohealthbar.BackgroundColor3 = colornew
+            end
+            universalcolor = colornew
+            for i,v in pairs(notificationwindow:GetChildren()) do 
+                if v:IsA("Frame") then 
+                    pcall(function()
+                        v.Frame.BackgroundColor3 = colornew
+                        v.TextLabel.TextColor3 = colornew
+                        v.TextLabel2.TextColor3 = colornew
+                    end)
+                end
+            end
+            num = num + 0.03
+        until guilib.ScreenGui == nil or guilib.ScreenGui.Parent == nil
+    end)
+
+    local function bettertween(obj, newpos, dir, style, tim, override)
+        spawn(function()
+            local frame = Instance.new("Frame")
+            frame.Visible = false
+            frame.Position = obj.Position
+            frame.Parent = guilib.ScreenGui
+            frame:GetPropertyChangedSignal("Position"):connect(function()
+                obj.Position = UDim2.new(obj.Position.X.Scale, obj.Position.X.Offset, frame.Position.Y.Scale, frame.Position.Y.Offset)
+            end)
+            frame:TweenPosition(newpos, dir, style, tim, override)
+            frame.Parent = nil
+            task.wait(tim)
+            frame:Remove()
+        end)
+    end
+
+    local function bettertween2(obj, newpos, dir, style, tim, override)
+        spawn(function()
+            local frame = Instance.new("Frame")
+            frame.Visible = false
+            frame.Position = obj.Position
+            frame.Parent = guilib.ScreenGui
+            frame:GetPropertyChangedSignal("Position"):connect(function()
+                obj.Position = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset, obj.Position.Y.Scale, obj.Position.Y.Offset)
+            end)
+            pcall(function()
+                frame:TweenPosition(newpos, dir, style, tim, override)
+            end)
+            frame.Parent = nil
+            task.wait(tim)
+            frame:Remove()
+        end)
+    end
+
+    notificationwindow.ChildRemoved:connect(function()
+        for i,v in pairs(notificationwindow:GetChildren()) do
+            bettertween(v, UDim2.new(1, v.Position.X.Offset, 1, -(150 + 80 * (i - 1))), Enum.EasingDirection.In, Enum.EasingStyle.Sine, 0.15, true)
+        end
+    end)
+
+    local function removeTags(str)
+        str = str:gsub("<br%s*/>", "\n")
+        return (str:gsub("<[^<>]->", ""))
+    end
+
+    VapeGui.CreateNotification = function(top, bottom, duration, customicon)
+        local offset = #notificationwindow:GetChildren()
+        local togglecheck = (bottom:find("Enabled") or bottom:find("Disabled"))
+        if (togglecheck and (not riseoptions.RenderToggle)) then return end
+        local togglecheck2 = bottom:find("Enabled") and true or false
+        local newtext = removeTags(togglecheck and (togglecheck2 and "Enabled " or "Disabled ")..bottom:split(" ")[1] or bottom)
+        local calculatedsize = game:GetService("TextService"):GetTextSize(newtext, 13, Enum.Font.Gotham, Vector2.new(100000, 13))
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, calculatedsize.X + 20, 0, 60)
+        frame.Position = UDim2.new(1, 0, 1, -(150 + 80 * offset))
+        frame.BackgroundTransparency = 0.5
+        frame.BackgroundColor3 = Color3.new(0, 0,0)
+        frame.BorderSizePixel = 0
+        frame.Parent = notificationwindow
+        frame.Visible = true
+        frame.ClipsDescendants = false
+        local uicorner = Instance.new("UICorner")
+        uicorner.CornerRadius = UDim.new(0, 4)
+        uicorner.Parent = frame
+        local textlabel1 = Instance.new("TextLabel")
+        textlabel1.Font = Enum.Font.Gotham
+        textlabel1.TextSize = 13
+        textlabel1.RichText = true
+        textlabel1.TextTransparency = 0.1
+        textlabel1.TextColor3 = risethemes[riseoptions.Theme].TextGUIColor1
+        textlabel1.BackgroundTransparency = 1
+        textlabel1.Position = UDim2.new(0, 10, 0, 10)
+        textlabel1.TextXAlignment = Enum.TextXAlignment.Left
+        textlabel1.TextYAlignment = Enum.TextYAlignment.Top
+        textlabel1.Text = "Notification"
+        textlabel1.Parent = frame
+        local textlabel2 = textlabel1:Clone()
+        textlabel2.Position = UDim2.new(0, 10, 0, 30)
+        textlabel2.Font = Enum.Font.Gotham
+        textlabel2.Name = "TextLabel2"
+        textlabel2.TextTransparency = 0
+        textlabel2.RichText = true
+        local frame2 = Instance.new("Frame")
+        frame2.AnchorPoint = Vector2.new(1, 0)
+        frame2.Size = UDim2.new(1, 0, 0, 4)
+        frame2.Position = UDim2.new(1, 0, 1, -4)
+        frame2.BackgroundColor3 = Color3.fromRGB(71, 233, 175)
+        frame2.BorderSizePixel = 0
+        frame2.Parent = frame
+        textlabel2.Text = newtext
+        textlabel2.Parent = frame
+        spawn(function()
+            pcall(function()
+                bettertween2(frame, UDim2.new(1, -(calculatedsize.X + 20), 1, -(120 + 80 * offset)), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.2, true)
+                wait(0.2)
+                frame2:TweenSize(UDim2.new(0, 0, 0, 4), Enum.EasingDirection.In, Enum.EasingStyle.Linear, duration, true)
+                wait(duration)
+                bettertween2(frame, UDim2.new(1, 0, 1, frame.Position.Y.Offset), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.2, true)
+                wait(0.2)
+                frame:Remove()
+            end)
+        end)
+        return frame
+    end
     VapeGui["MainGui"].ScaledGui.Visible = false
 end)
 loadstring(GetURL("NewMainScript.lua"))()
@@ -131,8 +273,32 @@ local teleportfunc = game:GetService("Players").LocalPlayer.OnTeleport:Connect(f
     end
 end)
 
-local guilib = loadstring(GetURL("guilib.lua", true))()
-guilib.ScreenGui.MainFrame.Visible = VapeGui["MainBlur"].Enabled
+local RenderStepTable = {}
+local function BindToRenderStep(name, num, func)
+	if RenderStepTable[name] == nil then
+		RenderStepTable[name] = game:GetService("RunService").RenderStepped:connect(func)
+	end
+end
+local function UnbindFromRenderStep(name)
+	if RenderStepTable[name] then
+		RenderStepTable[name]:Disconnect()
+		RenderStepTable[name] = nil
+	end
+end
+VapeGui["MainGui"].ScaledGui.Visible = false
+guilib.ScreenGui.MainFrame.Visible = VapeGui["MainGui"].ScaledGui.ClickGui.Visible
+VapeGui["MainGui"].ScaledGui.ClickGui:GetPropertyChangedSignal("Visible"):connect(function()
+    guilib.ScreenGui.MainFrame.Visible = VapeGui["MainGui"].ScaledGui.ClickGui.Visible
+    task.delay(0.001, function()
+        game:GetService("RunService"):SetRobloxGuiFocused(false)	
+    end)
+    if VapeGui["MainGui"].ScaledGui.ClickGui.Visible then
+        guilib.ScreenGui.MainFrame.Size = UDim2.new(0, 664, 0, 560)
+        guilib.ScreenGui.MainFrame.Position = UDim2.new(0.5, -264, 0.5, -294)
+        guilib.ScreenGui.MainFrame:TweenSize(UDim2.new(0, 830, 0, 700), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2, true)
+        guilib.ScreenGui.MainFrame:TweenPosition(UDim2.new(0.5, -330, 0.5, -368), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2, true)
+    end
+end)
 local windowtabs = {
     Combat = guilib:CreateCategory({
         Name = "Combat",
@@ -210,18 +376,6 @@ All rights goto the Rise Team
 infolab4.TextXAlignment = Enum.TextXAlignment.Left
 infolab4.TextYAlignment = Enum.TextYAlignment.Top
 infolab4.BackgroundTransparency = 1
-
-VapeGui["MainGui"].ScaledGui.Visible = false
-VapeGui["MainBlur"].Size = 0
-VapeGui["MainBlur"]:GetPropertyChangedSignal("Enabled"):connect(function()
-    guilib.ScreenGui.MainFrame.Visible = VapeGui["MainBlur"].Enabled
-    if VapeGui["MainBlur"].Enabled then
-        guilib.ScreenGui.MainFrame.Size = UDim2.new(0, 664, 0, 560)
-        guilib.ScreenGui.MainFrame.Position = UDim2.new(0.5, -264, 0.5, -294)
-        guilib.ScreenGui.MainFrame:TweenSize(UDim2.new(0, 830, 0, 700), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2, true)
-        guilib.ScreenGui.MainFrame:TweenPosition(UDim2.new(0.5, -330, 0.5, -368), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2, true)
-    end
-end)
 
 local windowbuttons = {}
 local tab = {}
@@ -378,10 +532,14 @@ end
 local oldtab
 local oldfunc
 local olduninject = VapeGui.SelfDestruct
+local nametagconnection
 VapeGui.SelfDestruct = function(...)
     guilib.ScreenGui:Remove()
     if oldtab and oldfunc then 
         oldtab.ProcessCompletedChatMessage = oldfunc
+    end
+    if nametagconnection then 
+        nametagconnection:Disconnect()
     end
     if teleportfunc then 
         teleportfunc:Disconnect()
@@ -437,41 +595,12 @@ targetinfopicture.Parent = targetinfopictureframe
 local targetinfopicturecorner = Instance.new("UICorner")
 targetinfopicturecorner.CornerRadius = UDim.new(0, 128)
 targetinfopicturecorner.Parent = targetinfopicture
-local targetinfohealthbar = Instance.new("Frame")
+targetinfohealthbar = Instance.new("Frame")
 targetinfohealthbar.Position = UDim2.new(0, 74, 0, 55)
 targetinfohealthbar.BackgroundColor3 = Color3.fromRGB(133, 77, 195)
 targetinfohealthbar.BorderSizePixel = 0
 targetinfohealthbar.Size = UDim2.new(0, 140, 0, 10)
 targetinfohealthbar.Parent = targetinfo
-local notificationwindow = Instance.new("Frame")
-notificationwindow.Size = UDim2.new(1, 0, 1, 0)
-notificationwindow.BackgroundTransparency = 1
-notificationwindow.Parent = guilib.ScreenGui
-spawn(function()
-    local num = 0
-    repeat
-        task.wait(0.01)
-        local colornew = risethemes[riseoptions.Theme].TextGUIColor1
-        if num < 1 then
-            colornew = risethemes[riseoptions.Theme].TextGUIColor1:lerp(risethemes[riseoptions.Theme].TextGUIColor2, num)
-        elseif num < 2 then 
-            colornew = risethemes[riseoptions.Theme].TextGUIColor2:lerp(risethemes[riseoptions.Theme].TextGUIColor1, num - 1)
-        else
-            num = 0
-        end
-        targetinfohealthbar.BackgroundColor3 = colornew
-        for i,v in pairs(notificationwindow:GetChildren()) do 
-            if v:IsA("Frame") then 
-                pcall(function()
-                    v.Frame.BackgroundColor3 = colornew
-                    v.TextLabel.TextColor3 = colornew
-                    v.TextLabel2.TextColor3 = colornew
-                end)
-            end
-        end
-        num = num + 0.03
-    until guilib.ScreenGui == nil or guilib.ScreenGui.Parent == nil
-end)
 local targetinfoname = Instance.new("TextLabel")
 targetinfoname.Font = Enum.Font.TitilliumWeb
 targetinfoname.TextSize = 40
@@ -557,50 +686,6 @@ targetvape.UpdateInfo = function(tab, targetsize)
     return oldupdate(tab, targetsize)
 end
 
-local function bettertween(obj, newpos, dir, style, tim, override)
-    spawn(function()
-        local frame = Instance.new("Frame")
-        frame.Visible = false
-        frame.Position = obj.Position
-        frame.Parent = guilib.ScreenGui
-        frame:GetPropertyChangedSignal("Position"):connect(function()
-            obj.Position = UDim2.new(obj.Position.X.Scale, obj.Position.X.Offset, frame.Position.Y.Scale, frame.Position.Y.Offset)
-        end)
-        frame:TweenPosition(newpos, dir, style, tim, override)
-        frame.Parent = nil
-        task.wait(tim)
-        frame:Remove()
-    end)
-end
-
-local function bettertween2(obj, newpos, dir, style, tim, override)
-    spawn(function()
-        local frame = Instance.new("Frame")
-        frame.Visible = false
-        frame.Position = obj.Position
-        frame.Parent = guilib.ScreenGui
-        frame:GetPropertyChangedSignal("Position"):connect(function()
-            obj.Position = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset, obj.Position.Y.Scale, obj.Position.Y.Offset)
-        end)
-        pcall(function()
-            frame:TweenPosition(newpos, dir, style, tim, override)
-        end)
-        frame.Parent = nil
-        task.wait(tim)
-        frame:Remove()
-    end)
-end
-
-notificationwindow.ChildRemoved:connect(function()
-    for i,v in pairs(notificationwindow:GetChildren()) do
-        bettertween(v, UDim2.new(1, v.Position.X.Offset, 1, -(150 + 80 * (i - 1))), Enum.EasingDirection.In, Enum.EasingStyle.Sine, 0.15, true)
-    end
-end)
-
-local function removeTags(str)
-    str = str:gsub("<br%s*/>", "\n")
-    return (str:gsub("<[^<>]->", ""))
-end
 
 local risetext = Instance.new("TextLabel")
 risetext.Text = "Rise"
@@ -865,66 +950,6 @@ local function refreshbars(textlists)
 	end
 end
 
-VapeGui.CreateNotification = function(top, bottom, duration, customicon)
-    local offset = #notificationwindow:GetChildren()
-    local togglecheck = (bottom:find("Enabled") or bottom:find("Disabled"))
-    if (togglecheck and (not riseoptions.RenderToggle)) then return end
-    local togglecheck2 = bottom:find("Enabled") and true or false
-    local newtext = removeTags(togglecheck and (togglecheck2 and "Enabled " or "Disabled ")..bottom:split(" ")[1] or bottom)
-    local calculatedsize = game:GetService("TextService"):GetTextSize(newtext, 13, Enum.Font.Gotham, Vector2.new(100000, 13))
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, calculatedsize.X + 20, 0, 60)
-    frame.Position = UDim2.new(1, 0, 1, -(150 + 80 * offset))
-    frame.BackgroundTransparency = 0.5
-    frame.BackgroundColor3 = Color3.new(0, 0,0)
-    frame.BorderSizePixel = 0
-    frame.Parent = notificationwindow
-    frame.Visible = true
-    frame.ClipsDescendants = false
-    local uicorner = Instance.new("UICorner")
-    uicorner.CornerRadius = UDim.new(0, 4)
-    uicorner.Parent = frame
-    local textlabel1 = Instance.new("TextLabel")
-    textlabel1.Font = Enum.Font.Gotham
-    textlabel1.TextSize = 13
-    textlabel1.RichText = true
-    textlabel1.TextTransparency = 0.1
-    textlabel1.TextColor3 = risethemes[riseoptions.Theme].TextGUIColor1
-    textlabel1.BackgroundTransparency = 1
-    textlabel1.Position = UDim2.new(0, 10, 0, 10)
-    textlabel1.TextXAlignment = Enum.TextXAlignment.Left
-    textlabel1.TextYAlignment = Enum.TextYAlignment.Top
-    textlabel1.Text = "Notification"
-    textlabel1.Parent = frame
-    local textlabel2 = textlabel1:Clone()
-    textlabel2.Position = UDim2.new(0, 10, 0, 30)
-    textlabel2.Font = Enum.Font.Gotham
-    textlabel2.Name = "TextLabel2"
-    textlabel2.TextTransparency = 0
-    textlabel2.RichText = true
-    local frame2 = Instance.new("Frame")
-    frame2.AnchorPoint = Vector2.new(1, 0)
-    frame2.Size = UDim2.new(1, 0, 0, 4)
-    frame2.Position = UDim2.new(1, 0, 1, -4)
-    frame2.BackgroundColor3 = Color3.fromRGB(71, 233, 175)
-    frame2.BorderSizePixel = 0
-    frame2.Parent = frame
-    textlabel2.Text = newtext
-    textlabel2.Parent = frame
-    spawn(function()
-        pcall(function()
-            bettertween2(frame, UDim2.new(1, -(calculatedsize.X + 20), 1, -(120 + 80 * offset)), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.2, true)
-            wait(0.2)
-            frame2:TweenSize(UDim2.new(0, 0, 0, 4), Enum.EasingDirection.In, Enum.EasingStyle.Linear, duration, true)
-            wait(duration)
-            bettertween2(frame, UDim2.new(1, 0, 1, frame.Position.Y.Offset), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.2, true)
-            wait(0.2)
-            frame:Remove()
-        end)
-    end)
-    return frame
-end
-
 local function UpdateHud()
     local text = ""
 	local text2 = ""
@@ -1043,6 +1068,88 @@ local InterfaceRenderList = Interface:CreateToggle({
     end
 })
 
+
+local function isAlive(plr)
+	if plr then
+		return plr and plr.Character and plr.Character.Parent ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid")
+	end
+	return lplr and lplr.Character and lplr.Character.Parent ~= nil and lplr.Character:FindFirstChild("HumanoidRootPart") and lplr.Character:FindFirstChild("Head") and lplr.Character:FindFirstChild("Humanoid")
+end
+
+local NameTagsFolder = Instance.new("Folder")
+NameTagsFolder.Name = "NameTagsFolder"
+NameTagsFolder.Parent = VapeGui["MainGui"]
+local nametagsfolderdrawing = {}
+nametagconnection = players.PlayerRemoving:connect(function(plr)
+    if NameTagsFolder:FindFirstChild(plr.Name) then
+        NameTagsFolder[plr.Name]:Remove()
+    end
+    if nametagsfolderdrawing[plr.Name] then 
+        pcall(function()
+            nametagsfolderdrawing[plr.Name].Text:Remove()
+            nametagsfolderdrawing[plr.Name].BG:Remove()
+            nametagsfolderdrawing[plr.Name] = nil
+        end)
+    end
+end)
+local NameTags = windowtabs.Render:CreateButton({
+    Name = "RiseNameTags",
+    Function = function(callback)
+        riseoptions.NameTags = callback
+        if callback then 
+            BindToRenderStep("NameTags", 500, function()
+                for i,plr in pairs(players:GetChildren()) do
+                    local thing
+                    if NameTagsFolder:FindFirstChild(plr.Name) then
+                        thing = NameTagsFolder[plr.Name]
+                        thing.Visible = false
+                    else
+                        thing = Instance.new("TextLabel")
+                        thing.BackgroundTransparency = 0.5
+                        thing.BackgroundColor3 = Color3.new(0, 0, 0)
+                        thing.BorderSizePixel = 0
+                        thing.Visible = false
+                        thing.RichText = true
+                        thing.TextYAlignment = Enum.TextYAlignment.Top
+                        thing.Name = plr.Name
+                        thing.Font = Enum.Font.Gotham
+                        thing.TextSize = 16
+                        thing.TextColor3 = Color3.new(1, 1, 1)
+                        thing.Parent = NameTagsFolder
+                        local healthbar = Instance.new("Frame")
+                        healthbar.BorderSizePixel = 0
+                        healthbar.Size = UDim2.new(1, 0, 0, 2)
+                        healthbar.Position = UDim2.new(0, 0, 1, -2)
+                        healthbar.Parent = thing
+                    end
+
+                    if plr then
+                        if isAlive(plr) and plr:GetAttribute("Team") ~= lplr:GetAttribute("Team") and plr ~= lplr then
+                            local headPos, headVis = workspace.CurrentCamera:WorldToViewportPoint((plr.Character.HumanoidRootPart:GetRenderCFrame() * CFrame.new(0, plr.Character.Head.Size.Y + plr.Character.HumanoidRootPart.Size.Y, 0)).Position)
+                            
+                            if headVis then
+                                local displaynamestr = plr.DisplayName or plr.Name
+                                local nametagSize = game:GetService("TextService"):GetTextSize(displaynamestr, thing.TextSize, thing.Font, Vector2.new(100000, 100000))
+                                thing.Size = UDim2.new(0, nametagSize.X + 30, 0, nametagSize.Y + 4)
+                                thing.Text = displaynamestr
+                                thing.TextColor3 = Color3.new(1, 1, 1)
+                                thing.Visible = headVis
+                                thing.Position = UDim2.new(0, headPos.X - thing.Size.X.Offset / 2, 0, (headPos.Y - thing.Size.Y.Offset) - 36)
+                                thing.Frame.BackgroundColor3 = universalcolor
+                                thing.Frame.Size = UDim2.new(math.clamp(plr.Character.Humanoid.Health / plr.Character.Humanoid.MaxHealth, 0, 1), 0, 0, 2)
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            UnbindFromRenderStep("NameTags")
+            NameTagsFolder:ClearAllChildren()
+        end
+    end,
+    HoverText = ""
+})
+
 local function LoadSettings()
     local suc, res = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile("rise/settings.json")) end)
     if suc and type(res) == "table" then 
@@ -1067,6 +1174,9 @@ local function LoadSettings()
         end
         if InterfaceRenderB then 
             InterfaceRenderB:SetValue(math.floor(riseoptions.B * 255))
+        end
+        if NameTags then 
+            NameTags:ToggleButton(false, riseoptions.NameTags)
         end
         if risetextcustom then
             risetextcustom.Text = riseoptions.CustomText
