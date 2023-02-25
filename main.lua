@@ -367,7 +367,7 @@ Orignal Client by Alan32, Technio
 Strikeless, Nicklas, Auth,
 Hazsi, Solastis
 and Billionare
-intent.store
+vantageclients.com
 riseclient.com
     
 Roblox Port by 7GrandDad
